@@ -6,15 +6,19 @@ from asyncio import Semaphore
 from aiohttp import ClientSession
 
 from information_processing import save_data
+from query_build import build_post_json
 
 
-async def create_requests(id_list: typ.List[str], result_path: str, semaphore_count: int) -> None:
+async def create_requests(id_list: typ.List[str],
+                          query_type: typ.Dict[str, bool],
+                          result_path: str,
+                          semaphore_count: int) -> None:
     tasks = []
     semaphore = Semaphore(semaphore_count)
 
     async with ClientSession() as session:
         for hotel_id in id_list:
-            json_data = build_post_json(hotel_id)
+            json_data = build_post_json(hotel_id, query_type)
             task = asyncio.ensure_future(bound_fetch(json_data, result_path, semaphore, session))
             tasks.append(task)
 
@@ -41,45 +45,4 @@ async def http_request(json_data: dict, session: ClientSession) -> dict:
         return resp_json
 
 
-def build_post_json(listing_id: str) -> dict:
-    """Return Json"""
-    return {
-        "operationName": "ownerOfListing",
-        "variables": {
-            "listingId": listing_id,
-        },
-        "query": '''query ownerOfListing($listingId: String!) { 
-                        listing(listingId: $listingId) { 
-                            address {
-                                    city
-                                  country
-                                  stateProvince
-                            }
-                            ownersListingProfile {
-                                  aboutYou
-                                  whyHere
-                                  storyPhoto
-                                  yearPurchased
-                                  uniqueBenefits
-                            }
-                            contact {
-                                name
-                                languagesSpoken
-                                ownerProfilePhoto
-                                memberSince
-                                redirectUrl
-                                hasPhoneNumber
-                                phones{
-                                    phoneNumber
-                                    notes
-                                    areaCode
-                                    extension
-                                    phoneType
-                                    telScheme
-                                    countryCode
-                                    phoneNumber
-                                }
-                            } 
-                        } 
-                }'''
-    }
+
